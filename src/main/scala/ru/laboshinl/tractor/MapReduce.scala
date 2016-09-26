@@ -42,7 +42,7 @@ case class AggregatorMsg(id: UUID, value: mutable.Map[Long, TractorFlow]) extend
 object BigDataProcessor extends App {
 
   var flag = false
-  var bigDataFilePath = "/home/ubuntu/2013-10-01_capture-win12.pcap"//2013-10-10_capture-win14.pcap"
+  var bigDataFilePath = "/home/ubuntu/2013-10-10_capture-win14.pcap"
 
   if (args.length > 0) System.setProperty("akka.remote.netty.tcp.hostname", args(0))
 
@@ -50,44 +50,25 @@ object BigDataProcessor extends App {
 
 
   val system = ActorSystem("ClusterSystem", ConfigFactory.load())
-  //val cluster = Cluster(system)
+  val cluster = Cluster(system)
   val defaultBlockSize = 64 * 1024 * 1024
 
 
-  //val workerCount = 32 //Runtime.getRuntime.availableProcessors * 2
-
-
-  // println("aggregator %s".format(aggregator.path.toStringWithoutAddress))
-
-
-
-  val totalChunks = totalMessages(bigDataFilePath)
-  //val id = UUID.randomUUID()
-
-//  Thread.sleep(10000)
-//  val printer = system.actorOf(Props[PrintActor], "printer")
-//  val reducer = system.actorOf(Props(new ReduceActor(printer)).withRouter(FromConfig), "reducer")
-//  // val aggregator = system.actorOf(Props(new AggregateActor(reducer)).withRouter(FromConfig())‌, "aggregator")
-//  val aggregator = system.actorOf(Props(new AggregateActor(reducer)).withRouter(FromConfig), "aggregator")
-//  val tracker = system.actorOf(Props(new TrackActor(aggregator, printer)).withRouter(FromConfig), "tracker")
-//  val mapper = system.actorOf(Props(new MapActor(tracker, aggregator)).withRouter(FromConfig), "mapper")
-
-
   if (flag) {
-    //Thread.sleep(10000)
+    Thread.sleep(10000)
 
-    //val printer = system.actorOf(FromConfig.props(Props[PrintActor]), "printer")
     val printer = system.actorOf(Props[PrintActor], "printer")
     val reducer = system.actorOf(FromConfig.props(Props(new ReduceActor(printer))), "reducer")
-    val aggregator = system.actorOf(FromConfig.props(Props(new AggregateActor(reducer))), "aggregator")
+    val aggregator = system.actorOf(FromConfig.props(Props(new AggregateActor(reducer, printer))), "aggregator")
     val tracker = system.actorOf(FromConfig.props(Props(new TrackActor(aggregator, printer))), "tracker")
     val mapper = system.actorOf(FromConfig.props(Props(new MapActor(tracker, aggregator))), "mapper")
 
+
     Thread.sleep(10000)
 
-   // 0.to(5).foreach(_ => {
-      val id = UUID.randomUUID()
-      tracker ! TrackerMsg(id, totalChunks, 0, System.currentTimeMillis, isNew = true)
+    val totalChunks = totalMessages(bigDataFilePath)
+    val id = UUID.randomUUID()
+    tracker ! TrackerMsg(id, totalChunks, 0, System.currentTimeMillis, isNew = true)
 
     for (i <- 0 to totalChunks)
       mapper ! WorkerMsg(id, bigDataFilePath, i)//} )
@@ -104,7 +85,7 @@ object BigDataProcessor extends App {
   }
 }
 
-class AggregateActor(reducer: ActorRef) extends Actor {
+class AggregateActor(reducer: ActorRef, printer :ActorRef) extends Actor {
   val flows = mutable.Map[UUID, mutable.Map[Long, TractorFlow]]().withDefaultValue(mutable.Map[Long,TractorFlow]().withDefaultValue(new TractorFlow()))
 
   override def receive: Receive = {
@@ -112,11 +93,10 @@ class AggregateActor(reducer: ActorRef) extends Actor {
       flows(m.id)(m.key) += m.packet
     case m: MapperMsg2 =>
       flows(m.id)(m.key) ++= m.flow
-
-    case id: UUID => {
+    case id: UUID =>
+      // printer ! "I've sent"
       reducer ! AggregatorMsg(id, flows(id))
       flows.remove(id)
-    }
   }
 }
 
@@ -184,7 +164,6 @@ class ReduceActor(printer : ActorRef) extends Actor {
         reducedResult.remove(m.id)
         println("Now really done")
       }
-    case _ => println("i dont mind")
   }
 }
 
@@ -200,12 +179,14 @@ class TrackActor(aggregator: ActorRef, printer:ActorRef) extends Actor {
       else {
         jobs(m.id) += m
         //println("Job %s %s %% complete. ".format(m.id.toString, jobs(m.id).getProgress))
-        printer ! "Job %s %.2f %% complete.".format(m.id.toString, jobs(m.id).getProgress, self.path.toStringWithoutAddress, sender().path.address.toString)
       }
       if (jobs(m.id).isFinished) {
         aggregator ! new Broadcast(m.id)
         printer ! "Job %s finished in %s ms. ".format(m.id.toString, System.currentTimeMillis - jobs(m.id).startedAt)
         jobs.remove(m.id)
+      }
+      else{
+        printer ! "Job %s %.2f %% complete. Came from (%s)".format(m.id.toString, jobs(m.id).getProgress, /*self.path.toStringWithoutAddress,*/ sender().path.address.toString)
       }
   }
 }
