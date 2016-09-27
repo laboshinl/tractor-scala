@@ -46,8 +46,8 @@ class TractorFlow(var finCount: Int = 0,
                   var rstCount: Int = 0,
                   var clientLength: Int = 0,
                   var serverLength: Int = 0,
-                  var serverPacketCount: Int = 0,
-                  var clientPacketCount: Int = 0,
+                  var serverPacketCount: Long = 0,
+                  var clientPacketCount: Long = 0,
                   var clientPayloadSize: Int = 0,
                   var serverPayloadSize: Int = 0,
                   var serverPort: Int = 0,
@@ -74,10 +74,10 @@ def ++(f : TractorFlow) : TractorFlow = {
         this.clientPacketCount + f.clientPacketCount,
         this.clientPayloadSize + f.clientPayloadSize,
         this.serverPayloadSize + f.serverPayloadSize,
-        this.serverPort,
-        this.clientPort,
-        this.serverIp,
-        this.clientIp,
+        f.serverPort,
+        f.clientPort,
+        f.serverIp,
+        f.clientIp,
         if (f.startTime < this.startTime)
           f.startTime
         else
@@ -94,6 +94,7 @@ def ++(f : TractorFlow) : TractorFlow = {
   )
 }
   def +(p: TractorPacket): TractorFlow = {
+    //client
     if (p.portSrc > p.portDst)
       new TractorFlow(
         this.finCount + (if (p.isFin) 1 else 0),

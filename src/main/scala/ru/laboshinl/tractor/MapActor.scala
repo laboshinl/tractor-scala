@@ -16,22 +16,22 @@ import scala.util.control.Breaks._
  */
 class MapActor(tracker: ActorRef, aggregator: ActorRef) extends Actor {
 
-  val controller =  context.system.actorOf(Props(new FlowControlActor(aggregator)))
- // val flows = mutable.Map[UUID, mutable.Map[Long, TractorFlow]]().withDefaultValue(mutable.Map[Long, TractorFlow]).withDefaultValue(new TractorFlow())
+  val aggregatorController =  context.system.actorOf(Props(new FlowControlActor(aggregator)))
+  val trackerController =  context.system.actorOf(Props(new FlowControlActor(tracker)))
+
   val flows = mutable.Map[UUID,mutable.Map[Long, TractorFlow]]()
     .withDefaultValue(mutable.Map[Long,TractorFlow]()
-      .withDefaultValue(new TractorFlow()))
-  var byteBuffer = new Array[Byte](ApplicationMain.defaultBlockSize)
+      .withDefaultValue(new TractorFlow))
 
   def receive = {
     case WorkerMsg(id, bigDataFilePath, chunkIndex) =>
       val chunk = readChunk(bigDataFilePath, chunkIndex)
       readPackets(id, chunk)
       for ((k,v) <- flows(id)){
-        controller ! MapperMsg(id, k, v)
+        aggregatorController ! MapperMsg(id, k, v)
+        flows(id).remove(k)
       }
-      flows.remove(id)
-      tracker ! new TrackerMsg(id)
+      trackerController ! TrackerMsg(id)
   }
 
 
@@ -54,7 +54,8 @@ class MapActor(tracker: ActorRef, aggregator: ActorRef) extends Actor {
             }
           }
         } catch {
-          case e: Exception =>  // println(e)
+          case e: Exception =>  println(e)
+            break()
         }
         it.next()
         offset += 1
@@ -82,7 +83,7 @@ class MapActor(tracker: ActorRef, aggregator: ActorRef) extends Actor {
     var offset = findFirstPacketRecord(chunk)
     var packets = chunk.splitAt(offset)._2
     breakable {
-      while (packets.nonEmpty) {
+      while (! packets.isEmpty) {
         val it = packets.iterator
         try {
           val ts_sec = it.getInt(LE)
@@ -128,7 +129,7 @@ class MapActor(tracker: ActorRef, aggregator: ActorRef) extends Actor {
           packets = packets.splitAt(16 + incl_len)._2
         }
         catch {
-          case e: Exception => //println(e)
+          case e: Exception => println(e)
             break()
         }
       }
@@ -137,6 +138,7 @@ class MapActor(tracker: ActorRef, aggregator: ActorRef) extends Actor {
 
   private def readChunk(bigDataFilePath: String, chunkIndex: Int): ByteString = {
     val randomAccessFile = new RandomAccessFile(bigDataFilePath, "r")
+    var byteBuffer = new Array[Byte](ApplicationMain.defaultBlockSize)
     try {
       val seek = chunkIndex * ApplicationMain.defaultBlockSize
       randomAccessFile.seek(seek & 0xFFFFFFFFL)

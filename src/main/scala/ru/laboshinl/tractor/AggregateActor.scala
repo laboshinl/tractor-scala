@@ -13,7 +13,7 @@ import scala.collection.mutable
 class AggregateActor(reducer: ActorRef, printer: ActorRef) extends Actor {
   val flows = mutable.Map[UUID,mutable.Map[Long, TractorFlow]]()
     .withDefaultValue(mutable.Map[Long,TractorFlow]()
-      .withDefaultValue(new TractorFlow()))
+      .withDefaultValue(new TractorFlow))
 
   override def receive: Receive = {
     case m: MapperMsg =>

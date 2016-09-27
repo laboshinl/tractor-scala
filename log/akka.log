@@ -1,7 +1,0 @@
-INFO [ClusterSystem-akka.actor.default-dispatcher-2] a.e.s.Slf4jLogger - Slf4jLogger started
-INFO [ClusterSystem-akka.actor.default-dispatcher-4] a.r.Remoting - Starting remoting
-INFO [ClusterSystem-akka.actor.default-dispatcher-4] a.r.Remoting - Remoting started; listening on addresses :[akka.tcp://ClusterSystem@192.168.2.160:2551]
-INFO [ClusterSystem-akka.actor.default-dispatcher-4] a.r.Remoting - Remoting now listens on addresses: [akka.tcp://ClusterSystem@192.168.2.160:2551]
-INFO [ClusterSystem-akka.actor.default-dispatcher-4] a.c.Cluster(akka://ClusterSystem) - Cluster Node [akka.tcp://ClusterSystem@192.168.2.160:2551] - Starting up...
-INFO [ClusterSystem-akka.actor.default-dispatcher-3] a.c.Cluster(akka://ClusterSystem) - Cluster Node [akka.tcp://ClusterSystem@192.168.2.160:2551] - Registered cluster JMX MBean [akka:type=Cluster]
-INFO [ClusterSystem-akka.actor.default-dispatcher-3] a.c.Cluster(akka://ClusterSystem) - Cluster Node [akka.tcp://ClusterSystem@192.168.2.160:2551] - Started up successfully

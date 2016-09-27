@@ -8,6 +8,10 @@ lazy val akkaVersion = "2.4.6"
 
 fork in Test := true
 
+mainClass in assembly := Some("ru.laboshinl.tractor.ApplicationMain")
+assemblyJarName in assembly := "tractor.jar"
+test in assembly := {} 
+
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
   "com.typesafe.akka" %% "akka-cluster-tools" % akkaVersion,
