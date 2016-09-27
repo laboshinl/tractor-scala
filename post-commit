@@ -1,12 +1,25 @@
 #!/bin/sh
-scp -r ~/workspace/tractor-scala/ ubuntu@node1:~/
-ssh ubuntu@node1 '(killall -9 java; cd ~/tractor-scala/; env JVA_OPTS="-XX:+UseParallelGC -XX:+UseCompressedOops -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOG_DIR -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:FlightRecorderOptions=defaultrecording=true" sbt -mem 3052 "run-main ru.laboshinl.tractor.BigDataProcessor 172.16.1.93";) &>/tmp/akka.log &'
+scp -q -o LogLevel=QUIET -r ~/tractor-scala/src 172.16.1.113:~/tractor-scala
+ssh 172.16.1.113 '(killall -9 java; cd ~/tractor-scala/; sbt -mem 6000 "run-main ru.laboshinl.tractor.ApplicationMain";) &>/tmp/akka.log &'
 
-scp -r ~/workspace/tractor-scala/ ubuntu@node2:~/
-ssh ubuntu@node2 '(killall -9 java; cd ~/tractor-scala/; env JVA_OPTS="-XX:+UseParallelGC -XX:+UseCompressedOops -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOG_DIR -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:FlightRecorderOptions=defaultrecording=true" sbt -mem 3052 "run-main ru.laboshinl.tractor.BigDataProcessor 172.16.1.91";) &>/tmp/akka.log &'
+scp -q -o LogLevel=QUIET -r ~/tractor-scala/src 172.16.1.114:~/tractor-scala
+ssh 172.16.1.114 '(killall -9 java; cd ~/tractor-scala/; sbt -mem 6000 "run-main ru.laboshinl.tractor.ApplicationMain";) &>/tmp/akka.log &'
+scp -q -o LogLevel=QUIET -r ~/tractor-scala/src 172.16.1.115:~/tractor-scala
+ssh 172.16.1.115 '(killall -9 java; cd ~/tractor-scala/; sbt -mem 6000 "run-main ru.laboshinl.tractor.ApplicationMain";) &>/tmp/akka.log &'
+scp -q -o LogLevel=QUIET -r ~/tractor-scala/src 172.16.1.116:~/tractor-scala
+ssh 172.16.1.116 '(killall -9 java; cd ~/tractor-scala/; sbt -mem 6000 "run-main ru.laboshinl.tractor.ApplicationMain";) &>/tmp/akka.log &'
+scp -q -o LogLevel=QUIET -r ~/tractor-scala/src 172.16.1.117:~/tractor-scala
+ssh 172.16.1.117 '(killall -9 java; cd ~/tractor-scala/; sbt -mem 6000 "run-main ru.laboshinl.tractor.ApplicationMain";) &>/tmp/akka.log &'
+scp -q -o LogLevel=QUIET -r ~/tractor-scala/src 172.16.1.118:~/tractor-scala
+ssh 172.16.1.118 '(killall -9 java; cd ~/tractor-scala/; sbt -mem 6000 "run-main ru.laboshinl.tractor.ApplicationMain";) &>/tmp/akka.log &'
+scp -q -o LogLevel=QUIET -r ~/tractor-scala/src 172.16.1.119:~/tractor-scala
+ssh 172.16.1.119 '(killall -9 java; cd ~/tractor-scala/; sbt -mem 6000 "run-main ru.laboshinl.tractor.ApplicationMain";) &>/tmp/akka.log &'
+scp -q -o LogLevel=QUIET -r ~/tractor-scala/src 172.16.1.120:~/tractor-scala
+ssh 172.16.1.120 '(killall -9 java; cd ~/tractor-scala/; sbt -mem 6000 "run-main ru.laboshinl.tractor.ApplicationMain";) &>/tmp/akka.log &'
+scp -q -o LogLevel=QUIET -r ~/tractor-scala/src 172.16.1.121:~/tractor-scala
+ssh 172.16.1.121 '(killall -9 java; cd ~/tractor-scala/; sbt -mem 6000 "run-main ru.laboshinl.tractor.ApplicationMain";) &>/tmp/akka.log &'
 
-scp -r ~/workspace/tractor-scala/ ubuntu@node4:~/
-ssh ubuntu@node4 '(killall -9 java; cd ~/tractor-scala/; env JVA_OPTS="-XX:+UseParallelGC -XX:+UseCompressedOops -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOG_DIR -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:FlightRecorderOptions=defaultrecording=true" sbt -mem 3052 "run-main ru.laboshinl.tractor.BigDataProcessor 172.16.1.94";) &>/tmp/akka.log &'
+killall -9 java; cd ~/tractor-scala/; sbt -mem 6000 "run-main ru.laboshinl.tractor.ApplicationMain /home/ubuntu/pcaps/bigFlows.pcap"
 
-scp -r ~/workspace/tractor-scala/ ubuntu@node3:~/
-ssh ubuntu@node3 '(killall -9 java; cd ~/tractor-scala/; env JVA_OPTS="-XX:+UseParallelGC -XX:+UseCompressedOops -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOG_DIR -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:FlightRecorderOptions=defaultrecording=true" sbt -mem 3052 "run-main ru.laboshinl.tractor.BigDataProcessor 172.16.1.92 start";)'
+
+
