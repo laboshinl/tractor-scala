@@ -15,15 +15,15 @@ class TrackActor(aggregator: ActorRef, printer:ActorRef) extends Actor {
     case m: TrackerMsg =>
       if (m.isNew) {
         jobs(m.id) = m
-        printer ! "New job %s. ".format(m.id.toString)
+        //printer ! "New job %s. ".format(m.id.toString)
       } else {
         jobs(m.id) += m
-        sender() ! Acknowledged
+        //sender() ! Acknowledged
       }
 
       if (jobs(m.id).isFinished) {
         aggregator ! new Broadcast(m.id)
-        printer ! "Job %s finished in %s ms. ".format(m.id.toString, System.currentTimeMillis - jobs(m.id).startedAt)
+        //printer ! "Job %s finished in %s ms. ".format(m.id.toString, System.currentTimeMillis - jobs(m.id).startedAt)
         jobs.remove(m.id)
       }
 //      else{

@@ -6,6 +6,7 @@ import java.util.UUID
 
 import akka.actor.{Props, Actor, ActorRef}
 import akka.util.ByteString
+import com.typesafe.config.ConfigFactory
 
 import scala.collection.mutable
 import java.nio.ByteOrder.{BIG_ENDIAN => BE, LITTLE_ENDIAN => LE}
@@ -16,22 +17,21 @@ import scala.util.control.Breaks._
  */
 class MapActor(tracker: ActorRef, aggregator: ActorRef) extends Actor {
 
-  val aggregatorController =  context.system.actorOf(Props(new FlowControlActor(aggregator)))
-  val trackerController =  context.system.actorOf(Props(new FlowControlActor(tracker)))
-
-  val flows = mutable.Map[UUID,mutable.Map[Long, TractorFlow]]()
-    .withDefaultValue(mutable.Map[Long,TractorFlow]()
-      .withDefaultValue(new TractorFlow))
+  val aggregatorController =  context.system.actorOf(Props(new FlowControlActor(target = aggregator, forwardTo = tracker)))
 
   def receive = {
-    case WorkerMsg(id, bigDataFilePath, chunkIndex) =>
-      val chunk = readChunk(bigDataFilePath, chunkIndex)
-      readPackets(id, chunk)
-      for ((k,v) <- flows(id)){
-        aggregatorController ! MapperMsg(id, k, v)
-        flows(id).remove(k)
-      }
-      trackerController ! TrackerMsg(id)
+    case WorkerMsg(id, bigDataFilePath, startPos, endPos) =>
+      val chunk = readChunk(bigDataFilePath, startPos, endPos)
+//      var totalCount = 0.toLong
+//      for ((k, v) <- readPackets(chunk)) {
+//        totalCount += v.serverPacketCount
+//        totalCount += v.clientPacketCount
+//      }
+//      println("Mapper sent %s".format(totalCount))
+//      readPackets(chunk).foreach((x : (Long,TractorFlow)) => aggregatorController ! MapperMsg(id, x._1, x._2))
+//      aggregatorController ! AllSent(id)
+      readPackets(chunk).foreach((x : (Long,TractorFlow)) => aggregator ! MapperMsg(id, x._1, x._2))
+      tracker ! TrackerMsg(id)
   }
 
 
@@ -54,7 +54,7 @@ class MapActor(tracker: ActorRef, aggregator: ActorRef) extends Actor {
             }
           }
         } catch {
-          case e: Exception =>  println(e)
+          case e: Exception =>  println("Unable to find first packet record (%s)".format(e))
             break()
         }
         it.next()
@@ -79,11 +79,13 @@ class MapActor(tracker: ActorRef, aggregator: ActorRef) extends Actor {
     max << 64 | min
   }
 
-  def readPackets(id: UUID, chunk: ByteString): Unit = {
+  def readPackets(chunk: ByteString): mutable.Map[Long,TractorFlow] = {
+    val flows = mutable.Map.empty[Long,TractorFlow]
+      .withDefaultValue(TractorFlow())
     var offset = findFirstPacketRecord(chunk)
     var packets = chunk.splitAt(offset)._2
     breakable {
-      while (! packets.isEmpty) {
+      while (packets.nonEmpty) {
         val it = packets.iterator
         try {
           val ts_sec = it.getInt(LE)
@@ -119,7 +121,8 @@ class MapActor(tracker: ActorRef, aggregator: ActorRef) extends Actor {
               val finIsSet = (flags & 1) != 0
               val window = it.getShort(LE)
 
-              flows(id)(computeFlowHash(ipSrc, portSrc, ipDst, portDst)) += new TractorPacket(ts_sec * 1000L + ts_usec / 1000, ipToString(ipSrc), portSrc, ipToString(ipDst), portDst,
+
+              flows(computeFlowHash(ipSrc, portSrc, ipDst, portDst)) += new TractorPacket(ts_sec * 1000L + ts_usec / 1000, ipToString(ipSrc), portSrc, ipToString(ipDst), portDst,
                 seq, incl_len, synIsSet, finIsSet, ackIsSet, pusIsSet, rstIsSet,
                 window, new TractorPayload(offset + 16 + 14 + 20 + tcpHeaderLen, offset + incl_len))
 
@@ -129,18 +132,20 @@ class MapActor(tracker: ActorRef, aggregator: ActorRef) extends Actor {
           packets = packets.splitAt(16 + incl_len)._2
         }
         catch {
-          case e: Exception => println(e)
+          case e: Exception => println("Error reading last packet (%s)".format(e))
             break()
         }
       }
     }
+    flows
   }
 
-  private def readChunk(bigDataFilePath: String, chunkIndex: Int): ByteString = {
+  private def readChunk(bigDataFilePath: String, startPos: Long, endPos:Long): ByteString = {
+    //val blockSize = ConfigFactory.load.getInt("tractor.block-size")
     val randomAccessFile = new RandomAccessFile(bigDataFilePath, "r")
-    var byteBuffer = new Array[Byte](ApplicationMain.defaultBlockSize)
+    var byteBuffer = new Array[Byte]((endPos-startPos).toInt)
     try {
-      val seek = chunkIndex * ApplicationMain.defaultBlockSize
+      val seek = startPos
       randomAccessFile.seek(seek & 0xFFFFFFFFL)
       randomAccessFile.read(byteBuffer)
       ByteString.fromArray(byteBuffer)

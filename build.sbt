@@ -18,7 +18,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-persistence" % akkaVersion,
   //"org.iq80.leveldb" % "leveldb" % "0.7",
   //"org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8",
-  //"com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test",
+  "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test",
   //"org.scalatest" %% "scalatest" % "2.2.4" % "test",
   //"commons-io" % "commons-io" % "2.4" % "test",
   "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,

@@ -14,7 +14,7 @@ import scala.collection.mutable
  * Created by laboshinl on 9/27/16.
  */
 class ReduceActor(printer : ActorRef) extends Actor {
-  var aggregatorCount = 1//ConfigFactory.load.getInt("akka.actor.deployment./aggregator.nr-of-instances")
+  var aggregatorCount = 5//ConfigFactory.load.getInt("akka.actor.deployment./aggregator.nr-of-instances")
 
 //  private def readPacket(bigDataFilePath: String, startPos: Int, stopPos: Int): ByteString = {
 //    val byteBuffer = new Array[Byte](stopPos - startPos)
@@ -30,7 +30,7 @@ class ReduceActor(printer : ActorRef) extends Actor {
 //  }
 
   val reducedResult = mutable.Map[UUID, mutable.Map[Long, TractorFlow]]()
-    .withDefaultValue(mutable.Map[Long, TractorFlow]())
+    .withDefaultValue(mutable.Map[Long, TractorFlow]().withDefaultValue(new TractorFlow))
   val completedAggregations = mutable.Map[UUID, Int]().withDefaultValue(0)
 
   override def receive: Actor.Receive = {
@@ -42,13 +42,17 @@ class ReduceActor(printer : ActorRef) extends Actor {
       //printer ! "Completed aggregations %s from %s".format(completedAggregations(m.id), sender().path.address.toString)
       if (completedAggregations(m.id) == aggregatorCount) {
         //printer ! "Job %s TotalFlows %s".format(m.id, reducedResult(m.id).size)
-        printer ! "Job %s Total packets %s.".format(m.id, totalCount(reducedResult(m.id)))
-        reducedResult.remove(m.id)
-        completedAggregations.remove(m.id)
+        printer ! "Job %s Total packets %s".format(m.id, totalCount(reducedResult(m.id)))
+        reducedResult(m.id).foreach((x : (Long, TractorFlow)) => reducedResult(m.id).remove(x._1))
+        completedAggregations(m.id) = 0
       }
   }
 
   def totalCount(flows : mutable.Map[Long, TractorFlow]): Long ={
+    //val (key, value) = flows.head
+    //value.clientPacketCount
+    //array(0)
+  //}
     var totalCount = 0.toLong
     for ((k, v) <- flows) {
       totalCount += v.serverPacketCount

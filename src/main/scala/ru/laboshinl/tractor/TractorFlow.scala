@@ -1,5 +1,7 @@
 package ru.laboshinl.tractor
+
 import scala.collection.immutable.TreeMap
+
 /**
  * Created by laboshinl on 9/16/16.
  */
@@ -39,7 +41,7 @@ import scala.collection.immutable.TreeMap
 //* Flow duration (in microseconds)
 //* Flow start time (as a Unix timestamp)
 
-class TractorFlow(var finCount: Int = 0,
+case class TractorFlow(var finCount: Int = 0,
                   var synCount: Int = 0,
                   var ackCount: Int = 0,
                   var pushCount: Int = 0,
@@ -61,38 +63,39 @@ class TractorFlow(var finCount: Int = 0,
                   var clientPackets: Map[Long, TractorPayload] = TreeMap[Long, TractorPayload]().withDefaultValue(new TractorPayload(0, 0)),
                   var serverPackets: Map[Long, TractorPayload] = TreeMap[Long, TractorPayload]().withDefaultValue(new TractorPayload(0, 0))
                    ) extends Serializable {
-def ++(f : TractorFlow) : TractorFlow = {
-  new TractorFlow(
-        this.finCount + f.finCount,
-        this.synCount + f.synCount,
-        this.ackCount + f.ackCount,
-        this.pushCount + f.pushCount,
-        this.rstCount + f.rstCount,
-        this.clientLength + f.clientLength,
-        this.serverLength + f.serverLength,
-        this.serverPacketCount + f.serverPacketCount,
-        this.clientPacketCount + f.clientPacketCount,
-        this.clientPayloadSize + f.clientPayloadSize,
-        this.serverPayloadSize + f.serverPayloadSize,
-        f.serverPort,
-        f.clientPort,
-        f.serverIp,
-        f.clientIp,
-        if (f.startTime < this.startTime)
-          f.startTime
-        else
-          this.startTime,
-        if (f.stopTime > this.stopTime)
-          f.stopTime
-        else
-          this.stopTime,
-        this.clientWindow + f.clientWindow,
-        this.serverWindow + f.serverWindow,
-        this.clientPackets ++ f.clientPackets,
-        this.serverPackets ++ f.serverPackets
+  def ++(f: TractorFlow): TractorFlow = {
+    new TractorFlow(
+      this.finCount + f.finCount,
+      this.synCount + f.synCount,
+      this.ackCount + f.ackCount,
+      this.pushCount + f.pushCount,
+      this.rstCount + f.rstCount,
+      this.clientLength + f.clientLength,
+      this.serverLength + f.serverLength,
+      this.serverPacketCount + f.serverPacketCount,
+      this.clientPacketCount + f.clientPacketCount,
+      this.clientPayloadSize + f.clientPayloadSize,
+      this.serverPayloadSize + f.serverPayloadSize,
+      f.serverPort,
+      f.clientPort,
+      f.serverIp,
+      f.clientIp,
+      if (f.startTime < this.startTime)
+        f.startTime
+      else
+        this.startTime,
+      if (f.stopTime > this.stopTime)
+        f.stopTime
+      else
+        this.stopTime,
+      this.clientWindow + f.clientWindow,
+      this.serverWindow + f.serverWindow,
+      this.clientPackets ++ f.clientPackets,
+      this.serverPackets ++ f.serverPackets
 
-  )
-}
+    )
+  }
+
   def +(p: TractorPacket): TractorFlow = {
     //client
     if (p.portSrc > p.portDst)
@@ -142,7 +145,7 @@ def ++(f : TractorFlow) : TractorFlow = {
         this.serverPacketCount + 1,
         this.clientPacketCount,
         this.clientPayloadSize,
-        this.serverPayloadSize +  p.paylodPosition.stopPos - p.paylodPosition.startPos,
+        this.serverPayloadSize + p.paylodPosition.stopPos - p.paylodPosition.startPos,
         p.portDst,
         p.portSrc,
         p.ipDst,
@@ -158,7 +161,7 @@ def ++(f : TractorFlow) : TractorFlow = {
         this.clientWindow,
         this.serverWindow + p.window,
         this.clientPackets,
-        if ( p.paylodPosition.stopPos - p.paylodPosition.startPos > 0) {
+        if (p.paylodPosition.stopPos - p.paylodPosition.startPos > 0) {
           this.serverPackets + (p.seq -> p.paylodPosition)
         }
         else {

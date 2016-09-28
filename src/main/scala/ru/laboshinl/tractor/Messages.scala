@@ -26,6 +26,7 @@ case class AggregatorMsg(id: UUID, value: mutable.Map[Long, TractorFlow]) extend
   override def consistentHashKey = id
 }
 
-case class WorkerMsg(id: UUID, bigDataFilePath: String, chunkIndex: Int)
+case class WorkerMsg(id: UUID, bigDataFilePath: String, startPos: Long, endPos : Long)
 
-case object Acknowledged
+case class Acknowledged(id:UUID)
+case class AllSent(id:UUID)

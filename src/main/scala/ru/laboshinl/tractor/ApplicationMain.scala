@@ -36,7 +36,8 @@ object ApplicationMain extends App {
 
   val system = ActorSystem("ClusterSystem", ConfigFactory.load())
   val cluster = Cluster(system)
-  val defaultBlockSize = 10 * 1024 * 1024
+  //val defaultBlockSize = 10 * 1024 * 1024
+  val blockSize = ConfigFactory.load.getInt("tractor.block-size")
 
   if (flag) {
     //Thread.sleep(10000)
@@ -52,22 +53,25 @@ object ApplicationMain extends App {
     val result = Await.result(future, timeout.duration).asInstanceOf[akka.routing.Routees]
     reducer ! new Broadcast(result)
 
-    Thread.sleep(10000)
+    //Thread.sleep(10000)
 
-   // 1.to(20).foreach(_ => {
-      val totalChunks = totalMessages(bigDataFilePath)
+    1.to(5).foreach(_ => {
+      val fileSize = getFileSize(bigDataFilePath)
+      val totalChunks = if ((fileSize/blockSize).toInt == 0) 1 else  (fileSize/blockSize).toInt
       val id = UUID.randomUUID()
       tracker ! TrackerMsg(id, totalChunks, 0, System.currentTimeMillis, isNew = true)
-      for (i <- 0 to totalChunks)
-        mapper ! WorkerMsg(id, bigDataFilePath, i)
-   // })
+      for (i <- 0 to totalChunks-1) {
+        val startPos = blockSize * i
+        val endPos = if (i == totalChunks - 1) fileSize else (blockSize * (i + 1) - 1);
+        mapper ! WorkerMsg(id, bigDataFilePath, startPos, endPos)
+      }
+    })
   }
 
-
-  private def totalMessages(bigDataFilePath: String): Int = {
+  private def getFileSize(bigDataFilePath: String): Long = {
     val randomAccessFile = new RandomAccessFile(bigDataFilePath, "r")
     try {
-      (randomAccessFile.length / defaultBlockSize).toInt
+      randomAccessFile.length
     } finally {
       randomAccessFile.close()
     }
