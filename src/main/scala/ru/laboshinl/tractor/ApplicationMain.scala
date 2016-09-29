@@ -55,7 +55,7 @@ object ApplicationMain extends App {
 
     //Thread.sleep(10000)
 
-    1.to(5).foreach(_ => {
+    1.to(1).foreach(_ => {
       val fileSize = getFileSize(bigDataFilePath)
       val totalChunks = if ((fileSize/blockSize).toInt == 0) 1 else  (fileSize/blockSize).toInt
       val id = UUID.randomUUID()

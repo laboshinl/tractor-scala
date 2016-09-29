@@ -3,7 +3,7 @@ package ru.laboshinl.tractor
 import java.util.UUID
 //import java.util.concurrent.ConcurrentHashMap
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Props, Actor, ActorRef}
 
 //import scala.collection.mutable
 import scala.collection._
@@ -20,9 +20,10 @@ class AggregateActor(reducer: ActorRef, printer: ActorRef) extends Actor {
 //  val flows = new mutable.HashMap[UUID,mutable.Map[Long, TractorFlow]] with mutable.SynchronizedMap[UUID, mutable.Map[Long, TractorFlow]]
 
 //    .withDefaultValue(new mutable.HashMap[Long,TractorFlow] with mutable.SynchronizedMap[Long, TractorFlow] .withDefaultValue(new TractorFlow))
-
+  val extractor = context.system.actorOf(Props(new DataExtract(printer)))
   override def receive: Receive = {
     case MapperMsg(jobId, flowId, flow ) =>
+
 //      if(flows(jobId) isDefinedAt(flowId)){
 //        flows(jobId)(flowId) ++= flow
 //      }
@@ -41,26 +42,18 @@ class AggregateActor(reducer: ActorRef, printer: ActorRef) extends Actor {
         //println("New flow")
       }
 
-
+      sender ! Acknowledged
 
        // flows(jobId)(flowId) ++= flow
 
-      sender ! Acknowledged(jobId)
+
     case jobId : UUID =>
-      println(jobId)
-      println(flows(jobId).size)
-//      val (key, value) = flows(jobId).head
-//      println("(%s) %s".format(self.path.toStringWithoutAddress, value.clientPacketCount))
-      //println("Immm %s %s".format(flows(id).size, sender().path.toStringWithoutAddress))
-      var totalCount = 0.toLong
-      for ((k, v) <- flows(jobId)) {
-        totalCount += v.serverPacketCount
-        totalCount += v.clientPacketCount
-      }
-      println("aggregator %s".format(totalCount))
       reducer ! AggregatorMsg(jobId, flows(jobId).clone())
-      //flows(jobId) = mutable.Map.empty[Long,TractorFlow]
+      extractor ! AggregatorMsg(jobId, flows(jobId).clone())
       flows(jobId).foreach((x : (Long,TractorFlow)) => flows(jobId).remove(x._1))
       flows(jobId).clear()
+    case m: TrackerMsg =>
+      sender ! AllSent(m.id)
+      println("asdasdf")
   }
 }

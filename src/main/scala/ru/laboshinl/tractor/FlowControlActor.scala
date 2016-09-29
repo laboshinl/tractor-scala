@@ -6,35 +6,37 @@ import akka.actor.{Actor, ActorRef, Terminated}
 
 import scala.collection.mutable
 
-class FlowControlActor(target: ActorRef, windowSize: Int = 1, forwardTo : ActorRef ) extends Actor {
+class FlowControlActor(target: ActorRef, windowSize: Int = 10000, tracker: ActorRef) extends Actor {
 
-  val queue = mutable.Map[UUID, mutable.Queue[Any]]().withDefaultValue(mutable.Queue.empty[Any])
-  var pending = mutable.Map[UUID, Int]().withDefaultValue(0)
-  var flag = mutable.Map[UUID, Boolean]().withDefaultValue(false)
+  val queue = mutable.Queue.empty[Any]
+  var pending = 0
 
-  override def preStart(): Unit = context.watch(target)
-
-
+  override def preStart(): Unit = {
+    context.watch(target)
+    context.watch(tracker)
+  }
 
   def receive = {
-    case Acknowledged(id) =>
-      if (pending(id) > 0) pending(id) -= 1
-      if (queue(id).nonEmpty) {
-        target ! queue(id).dequeue()
-        pending(id) += 1
-      }
-      if (pending(id) == 0 && queue(id).isEmpty && flag(id)) {
-        forwardTo ! TrackerMsg(id)
-      }
-    case Terminated(targ) => context.stop(self)
     case AllSent(id) =>
-       flag(id) = true
-    case m: MapperMsg =>
-      if (pending(m.id) == windowSize) {
-        queue(m.id) enqueue m
-      } else {
-        pending(m.id) += 1
-        target ! m
+      tracker ! TrackerMsg(id)
+      println(s"to tracker $id")
+
+    case Acknowledged =>
+      if (pending > 0) pending -= 1
+      if (queue.nonEmpty) {
+        target ! queue.dequeue()
+        pending += 1
       }
+
+    case msg =>
+      if (pending == windowSize) {
+        queue enqueue msg
+      } else {
+        pending += 1
+        target ! msg
+      }
+
+      //println(s"to tracker $id")
+    //case Terminated(targ) => context.stop(self)
   }
 }

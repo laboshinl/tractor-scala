@@ -17,10 +17,11 @@ import scala.util.control.Breaks._
  */
 class MapActor(tracker: ActorRef, aggregator: ActorRef) extends Actor {
 
-  val aggregatorController =  context.system.actorOf(Props(new FlowControlActor(target = aggregator, forwardTo = tracker)))
+  val aggregatorController =  context.system.actorOf(Props(new FlowControlActor(target = aggregator, tracker = tracker)))
 
   def receive = {
     case WorkerMsg(id, bigDataFilePath, startPos, endPos) =>
+      val workerId = UUID.randomUUID()
       val chunk = readChunk(bigDataFilePath, startPos, endPos)
 //      var totalCount = 0.toLong
 //      for ((k, v) <- readPackets(chunk)) {
@@ -30,8 +31,10 @@ class MapActor(tracker: ActorRef, aggregator: ActorRef) extends Actor {
 //      println("Mapper sent %s".format(totalCount))
 //      readPackets(chunk).foreach((x : (Long,TractorFlow)) => aggregatorController ! MapperMsg(id, x._1, x._2))
 //      aggregatorController ! AllSent(id)
-      readPackets(chunk).foreach((x : (Long,TractorFlow)) => aggregator ! MapperMsg(id, x._1, x._2))
-      tracker ! TrackerMsg(id)
+//      readPackets(chunk).foreach((x : (Long,TractorFlow)) => aggregatorController ! MapperMsg(id, x._1, x._2))
+//      aggregatorController ! TrackerMsg(id)
+         readPackets(chunk).foreach((x : (Long,TractorFlow)) => aggregator ! MapperMsg(id, x._1, x._2))
+         tracker ! TrackerMsg(id)
   }
 
 
@@ -123,8 +126,8 @@ class MapActor(tracker: ActorRef, aggregator: ActorRef) extends Actor {
 
 
               flows(computeFlowHash(ipSrc, portSrc, ipDst, portDst)) += new TractorPacket(ts_sec * 1000L + ts_usec / 1000, ipToString(ipSrc), portSrc, ipToString(ipDst), portDst,
-                seq, incl_len, synIsSet, finIsSet, ackIsSet, pusIsSet, rstIsSet,
-                window, new TractorPayload(offset + 16 + 14 + 20 + tcpHeaderLen, offset + incl_len))
+                seq, incl_len - tcpHeaderLen - 14 - 20/*incl_len*/, synIsSet, finIsSet, ackIsSet, pusIsSet, rstIsSet,
+                window, new TractorPayload(offset + 16 + 14 + 20 + tcpHeaderLen, offset + 16 + incl_len))
 
             }
           }

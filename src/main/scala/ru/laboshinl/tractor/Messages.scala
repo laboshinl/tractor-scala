@@ -28,5 +28,5 @@ case class AggregatorMsg(id: UUID, value: mutable.Map[Long, TractorFlow]) extend
 
 case class WorkerMsg(id: UUID, bigDataFilePath: String, startPos: Long, endPos : Long)
 
-case class Acknowledged(id:UUID)
+case object Acknowledged
 case class AllSent(id:UUID)

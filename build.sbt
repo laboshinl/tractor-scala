@@ -23,5 +23,6 @@ libraryDependencies ++= Seq(
   //"commons-io" % "commons-io" % "2.4" % "test",
   "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
   "ch.qos.logback" % "logback-classic" % "1.0.9",
+"nz.ac.waikato.cms.weka" % "weka-stable" % "3.8.0",
   //"com.typesafe.akka" %% "akka-cluster-sharding" % akkaVersion,
   "com.github.romix.akka" %% "akka-kryo-serialization" % "0.4.1")

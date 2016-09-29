@@ -41,8 +41,8 @@ class ReduceActor(printer : ActorRef) extends Actor {
       completedAggregations(m.id) += 1
       //printer ! "Completed aggregations %s from %s".format(completedAggregations(m.id), sender().path.address.toString)
       if (completedAggregations(m.id) == aggregatorCount) {
-        //printer ! "Job %s TotalFlows %s".format(m.id, reducedResult(m.id).size)
-        printer ! "Job %s Total packets %s".format(m.id, totalCount(reducedResult(m.id)))
+        printer ! "Job %s TotalFlows %s".format(m.id, reducedResult(m.id).size)
+        //printer ! "Job %s Total packets %s".format(m.id, totalCount(reducedResult(m.id)))
         reducedResult(m.id).foreach((x : (Long, TractorFlow)) => reducedResult(m.id).remove(x._1))
         completedAggregations(m.id) = 0
       }
