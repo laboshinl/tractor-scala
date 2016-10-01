@@ -20,7 +20,7 @@ class AggregateActor(reducer: ActorRef, printer: ActorRef) extends Actor {
 //  val flows = new mutable.HashMap[UUID,mutable.Map[Long, TractorFlow]] with mutable.SynchronizedMap[UUID, mutable.Map[Long, TractorFlow]]
 
 //    .withDefaultValue(new mutable.HashMap[Long,TractorFlow] with mutable.SynchronizedMap[Long, TractorFlow] .withDefaultValue(new TractorFlow))
-  val extractor = context.system.actorOf(Props(new DataExtract(printer)))
+  //val extractor = context.system.actorOf(Props(new DataExtract(printer)))
   override def receive: Receive = {
     case MapperMsg(jobId, flowId, flow ) =>
 
@@ -49,7 +49,7 @@ class AggregateActor(reducer: ActorRef, printer: ActorRef) extends Actor {
 
     case jobId : UUID =>
       reducer ! AggregatorMsg(jobId, flows(jobId).clone())
-      extractor ! AggregatorMsg(jobId, flows(jobId).clone())
+      //extractor ! AggregatorMsg(jobId, flows(jobId).clone())
       flows(jobId).foreach((x : (Long,TractorFlow)) => flows(jobId).remove(x._1))
       flows(jobId).clear()
     case m: TrackerMsg =>

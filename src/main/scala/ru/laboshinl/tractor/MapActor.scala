@@ -1,6 +1,6 @@
 package ru.laboshinl.tractor
 
-import java.io.RandomAccessFile
+import java.io.{RandomAccessFile => Jraf}
 import java.nio.ByteBuffer
 import java.util.UUID
 
@@ -22,6 +22,9 @@ class MapActor(tracker: ActorRef, aggregator: ActorRef) extends Actor {
   def receive = {
     case WorkerMsg(id, bigDataFilePath, startPos, endPos) =>
       val workerId = UUID.randomUUID()
+      //val file = new RandomAccessFile(bigDataFilePath)(ByteConverterBigEndian)
+
+
       val chunk = readChunk(bigDataFilePath, startPos, endPos)
 //      var totalCount = 0.toLong
 //      for ((k, v) <- readPackets(chunk)) {
@@ -35,6 +38,24 @@ class MapActor(tracker: ActorRef, aggregator: ActorRef) extends Actor {
 //      aggregatorController ! TrackerMsg(id)
          readPackets(chunk).foreach((x : (Long,TractorFlow)) => aggregator ! MapperMsg(id, x._1, x._2))
          tracker ! TrackerMsg(id)
+  }
+
+  def seekToFirstPacketRecord(file: RandomAccessFile): Unit = {
+    var position = file.getFilePointer
+    breakable{
+      while(position < file.length){
+        position = file.getFilePointer
+        val timestamp = file.readInt()
+        file.skipBytes(4)
+        val length = file.readInt32(2)
+        if (length(1).equals(length(2)) && 41.to(65535).contains(length(1))) {
+          file.skipBytes(length(1))
+          if (0.to(600).contains(timestamp - file.readInt()))
+            file.seek(position)
+            break()
+        } else file.seek(position + 1)
+      }
+    }
   }
 
 
@@ -82,7 +103,15 @@ class MapActor(tracker: ActorRef, aggregator: ActorRef) extends Actor {
     max << 64 | min
   }
 
+  private def getHeaderLength(byte : Byte) : Int = {
+    var res = 0D
+    0.to(3).foreach((shift : Int) => if ((byte >> shift & 1).equals(1)) res += math.pow(2,shift))
+    res.toInt * 4
+  }
+
   def readPackets(chunk: ByteString): mutable.Map[Long,TractorFlow] = {
+    val pcapHeaderLength = 16
+    val ipHeaderLength = 14
     val flows = mutable.Map.empty[Long,TractorFlow]
       .withDefaultValue(TractorFlow())
     var offset = findFirstPacketRecord(chunk)
@@ -98,9 +127,12 @@ class MapActor(tracker: ActorRef, aggregator: ActorRef) extends Actor {
           it.getBytes(6)
           it.getBytes(6)
           val etherType = it.getShort(LE)
-          if ((etherType & 0xFF).equals(8)) {
-            it.getBytes(8)
-            it.getByte
+          if ((etherType & 0xFF).equals(8)) { //IPv4
+            val ethHeaderLength = getHeaderLength(it.getByte) //Version, IHL
+            it.getByte // DSCP, ECN
+            it.getShort(BE) //Packet Length
+            it.getBytes(4)
+            it.getByte //ttl
             val proto = it.getByte & 0xFF
             it.getBytes(2) //check
             val ipSrc = it.getBytes(4)
@@ -113,6 +145,7 @@ class MapActor(tracker: ActorRef, aggregator: ActorRef) extends Actor {
               val ack = it.getInt(BE) & 0xffffffffl
               //62
               val tcpHeaderLen = (it.getByte & 0xFF) / 4
+
               val flags = it.getByte
               val conIsSet = ((flags >> 7) & 1) != 0
               val eIsSet = ((flags >> 6) & 1) != 0
@@ -123,7 +156,6 @@ class MapActor(tracker: ActorRef, aggregator: ActorRef) extends Actor {
               val synIsSet = ((flags >> 1) & 1) != 0
               val finIsSet = (flags & 1) != 0
               val window = it.getShort(LE)
-
 
               flows(computeFlowHash(ipSrc, portSrc, ipDst, portDst)) += new TractorPacket(ts_sec * 1000L + ts_usec / 1000, ipToString(ipSrc), portSrc, ipToString(ipDst), portDst,
                 seq, incl_len - tcpHeaderLen - 14 - 20/*incl_len*/, synIsSet, finIsSet, ackIsSet, pusIsSet, rstIsSet,
@@ -145,7 +177,7 @@ class MapActor(tracker: ActorRef, aggregator: ActorRef) extends Actor {
 
   private def readChunk(bigDataFilePath: String, startPos: Long, endPos:Long): ByteString = {
     //val blockSize = ConfigFactory.load.getInt("tractor.block-size")
-    val randomAccessFile = new RandomAccessFile(bigDataFilePath, "r")
+    val randomAccessFile = new Jraf(bigDataFilePath, "r")
     var byteBuffer = new Array[Byte]((endPos-startPos).toInt)
     try {
       val seek = startPos

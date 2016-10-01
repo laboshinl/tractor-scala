@@ -1,6 +1,6 @@
 package ru.laboshinl.tractor
 
-import java.io.RandomAccessFile
+import java.io.{RandomAccessFile => Jraf}
 import java.net.InetAddress
 import java.util.UUID
 
@@ -24,13 +24,13 @@ import scala.concurrent.Await
 object ApplicationMain extends App {
 
   var flag = false
-  var bigDataFilePath = "/home/laboshinl/Downloads/bigFlows.pcap"
+  var bigDataFilePath = "/home/laboshinl/Downloads/smallFlows.pcap"
 
-  System.setProperty("akka.remote.netty.tcp.hostname", InetAddress.getLocalHost.getHostAddress)
+  //System.setProperty("akka.remote.netty.tcp.hostname", InetAddress.getLocalHost.getHostAddress)
 
-  if (args.length > 0) {
+  if (args.length == 0) {
     flag = true
-    bigDataFilePath = args(0)
+    //bigDataFilePath = args(0)
   }
 
 
@@ -69,7 +69,7 @@ object ApplicationMain extends App {
   }
 
   private def getFileSize(bigDataFilePath: String): Long = {
-    val randomAccessFile = new RandomAccessFile(bigDataFilePath, "r")
+    val randomAccessFile = new Jraf(bigDataFilePath, "r")
     try {
       randomAccessFile.length
     } finally {
